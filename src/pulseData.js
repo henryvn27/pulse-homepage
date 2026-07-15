@@ -1,4 +1,4 @@
-const NATIVE_HOST = "com.henry.Pulse";
+const NATIVE_HOST = import.meta.env.VITE_NATIVE_HOST || "com.henry.Pulse";
 
 const unavailableSource = (noun) => ({
   status: "setup",
@@ -33,7 +33,6 @@ async function loadWeather() {
 }
 
 async function loadLinear(token) {
-  if (!hasNativeBridge()) return { ...unavailableSource("Linear"), issues: [] };
   if (!token) return { status: "setup", issues: [], message: "Add a Linear personal API key in Connections." };
   const completedAfter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const query = `query PulseDashboard {

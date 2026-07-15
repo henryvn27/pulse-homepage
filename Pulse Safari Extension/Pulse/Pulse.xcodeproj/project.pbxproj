@@ -432,7 +432,8 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.henry.Pulse.Extension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PULSE_BUNDLE_PREFIX).Pulse.Extension";
+				PULSE_BUNDLE_PREFIX = com.henry;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -468,7 +469,8 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.henry.Pulse.Extension;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PULSE_BUNDLE_PREFIX).Pulse.Extension";
+				PULSE_BUNDLE_PREFIX = com.henry;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -510,7 +512,8 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.henry.Pulse;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PULSE_BUNDLE_PREFIX).Pulse";
+				PULSE_BUNDLE_PREFIX = com.henry;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -553,7 +556,8 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.henry.Pulse;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(PULSE_BUNDLE_PREFIX).Pulse";
+				PULSE_BUNDLE_PREFIX = com.henry;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

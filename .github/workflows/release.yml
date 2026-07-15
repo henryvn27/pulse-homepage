@@ -1,15 +1,14 @@
-name: Verify
+name: Release standalone homepage
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  release:
+    types: [published]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  web-build:
+  standalone:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -27,8 +26,11 @@ jobs:
       - name: Check customization behavior
         run: npm run check:customization
 
-      - name: Build standalone and extension assets
+      - name: Build standalone homepage
         run: npm run build:single
 
-      - name: Verify generated standalone file
-        run: test -s ../pulse-homepage.html
+      - name: Attach standalone homepage to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" ../pulse-homepage.html --repo "$GITHUB_REPOSITORY" --clobber

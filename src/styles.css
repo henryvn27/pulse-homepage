@@ -181,13 +181,11 @@ button { color: inherit; }
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr) minmax(0, 0.95fr);
   grid-template-rows: minmax(0, 1.08fr) minmax(0, 0.92fr);
-  grid-template-areas: "brief reminders schedule" "brief reminders linear";
   gap: var(--space-3);
 }
-.brief-panel { grid-area: brief; background: var(--brief-surface); }
-.reminders-panel { grid-area: reminders; }
-.schedule-panel { grid-area: schedule; }
-.linear-panel { grid-area: linear; }
+.brief-panel { order: 0; grid-row: span 2; background: var(--brief-surface); }
+.secondary-widget.is-featured, .secondary-widget.is-tall { grid-row: span 2; }
+.secondary-widget.is-wide { grid-column: span 2; }
 
 .panel { min-height: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: inset 0 1px 0 var(--inner-highlight); }
 .panel-heading { display: flex; justify-content: space-between; align-items: flex-start; padding: var(--space-4) var(--space-4) var(--space-3); }
@@ -346,12 +344,37 @@ button { color: inherit; }
 .shortcut-manager strong { font-size: 12px; }
 .shortcut-manager button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); cursor: pointer; }
 .shortcut-manager button:hover { color: var(--text); background: var(--surface-strong); }
+.shortcut-manager button:disabled { cursor: not-allowed; opacity: 0.3; }
+.shortcut-row-actions { flex-direction: row !important; gap: var(--space-1) !important; }
+.shortcut-row-actions button { width: 32px; height: 32px; }
 .shortcut-form { border-top: 1px solid var(--line); padding-top: var(--space-5); }
 .shortcut-utilities { display: flex; gap: var(--space-2); margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--line); }
 
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); padding: var(--space-1) 0 var(--space-2); }
 .setting-row span { display: flex; flex-direction: column; gap: var(--space-1); font-size: 12px; }
 .setting-row small { color: var(--muted); }
+
+.settings-section { display: grid; gap: var(--space-3); padding-bottom: var(--space-5); }
+.settings-section + .settings-section { border-top: 1px solid var(--line); padding-top: var(--space-5); }
+.settings-kicker { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.field-label { display: grid; gap: var(--space-2); color: var(--muted); font-size: 11px; font-weight: 650; }
+.field-label input { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-strong); color: var(--text); padding: var(--space-3); }
+.settings-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.settings-section-heading > div { display: flex; flex-direction: column; gap: var(--space-1); }
+.settings-section-heading small { color: var(--muted); font-size: 10px; }
+.widget-row { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); border-bottom: 1px solid var(--line); }
+.widget-row > span:first-child, .widget-row > label > span { display: flex; flex-direction: column; gap: 2px; }
+.widget-row > label { min-width: 0; flex: 1; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); cursor: pointer; }
+.widget-row strong { font-size: 12px; }
+.widget-row small { color: var(--muted); font-size: 10px; }
+.widget-row input { width: 16px; height: 16px; accent-color: var(--green); }
+.widget-row.pinned { cursor: default; }
+.widget-order-controls { flex-direction: row !important; gap: var(--space-1) !important; }
+.widget-order-controls button { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm); background: var(--surface-strong); color: var(--muted); cursor: pointer; }
+.widget-order-controls button:hover:not(:disabled) { color: var(--text); background: var(--canvas); }
+.widget-order-controls button:disabled { opacity: 0.3; cursor: not-allowed; }
+.settings-actions { display: grid; grid-template-columns: auto auto 1fr; gap: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.settings-actions .primary-button { justify-self: end; min-width: 94px; }
 
 .connection-grid { display: grid; gap: var(--space-2); }
 .connection-row { display: grid; grid-template-columns: 9px 1fr; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
@@ -369,6 +392,7 @@ button { color: inherit; }
 .linear-key-form { display: grid; gap: var(--space-3); margin: var(--space-4) 0 var(--space-5); }
 .linear-key-link { justify-self: start; padding: 0; }
 .linear-key-form > div { display: flex; gap: var(--space-2); }
+.refresh-connections { width: 100%; }
 
 .reminder-confirm { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: var(--space-3); padding: 2px 0 var(--space-5); }
 .confirm-icon { width: 32px; height: 32px; display: grid; place-items: center; color: var(--green); }
@@ -396,7 +420,9 @@ button { color: inherit; }
   body { overflow: auto; }
   .app-shell { height: auto; min-height: 100dvh; }
   .dashboard { width: min(100% - 32px, 920px); height: auto; min-height: 100dvh; padding: var(--space-6) 0 48px; }
-  .content-grid { flex: none; grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr); grid-template-rows: auto; grid-template-areas: "brief schedule" "reminders schedule" "reminders linear"; }
+  .content-grid { flex: none; grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr); grid-template-rows: auto; }
+  .brief-panel { grid-column: 1 / -1; grid-row: auto; }
+  .secondary-widget, .secondary-widget.is-featured, .secondary-widget.is-tall, .secondary-widget.is-wide { grid-column: auto; grid-row: auto; }
 }
 
 @media (max-width: 820px) {
@@ -407,7 +433,8 @@ button { color: inherit; }
   .summary-strip > div { min-height: 72px; }
   .summary-strip > div:nth-child(2) { border-right: 0; }
   .summary-strip > div:nth-child(-n+2) { border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
-  .content-grid { grid-template-columns: 1fr; grid-template-areas: "brief" "reminders" "schedule" "linear"; }
+  .content-grid { grid-template-columns: 1fr; }
+  .brief-panel, .secondary-widget, .secondary-widget.is-featured, .secondary-widget.is-tall, .secondary-widget.is-wide { grid-column: auto; grid-row: auto; }
 }
 
 @media (max-width: 520px) {
@@ -425,6 +452,8 @@ button { color: inherit; }
   .brief-setup .text-button { margin-left: 32px; }
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions button { width: 100%; }
+  .settings-actions { grid-template-columns: 1fr 1fr; }
+  .settings-actions .primary-button { grid-column: 1 / -1; grid-row: 1; width: 100%; justify-self: stretch; }
 }
 
 @media (prefers-reduced-motion: reduce) {

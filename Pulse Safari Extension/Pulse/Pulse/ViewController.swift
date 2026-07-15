@@ -9,7 +9,9 @@ import Cocoa
 import SafariServices
 import WebKit
 
-private let extensionBundleIdentifier = "com.henry.Pulse.Extension"
+private var extensionBundleIdentifier: String {
+    "\(Bundle.main.bundleIdentifier ?? "com.henry.Pulse").Extension"
+}
 
 private enum PulseColors {
     static let canvas = adaptive(light: 0xEEEAE2, dark: 0x171816)

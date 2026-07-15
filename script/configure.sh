@@ -2,25 +2,35 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PREFIX="${1:-}"
+SAFE_USER="$(printf '%s' "${USER:-pulse}" | tr -cd '[:alnum:]' | tr '[:upper:]' '[:lower:]')"
+PREFIX="${1:-dev.${SAFE_USER:-pulse}.pulse}"
 
 if [[ ! "$PREFIX" =~ ^[A-Za-z][A-Za-z0-9.-]*$ ]]; then
-  echo "usage: $0 <bundle-prefix>" >&2
+  echo "usage: $0 [bundle-prefix]" >&2
   echo "example: $0 com.yourname" >&2
   exit 2
 fi
 
-HOST_ID="$PREFIX.Pulse"
-EXTENSION_ID="$HOST_ID.Extension"
-PROJECT="$ROOT_DIR/Pulse Safari Extension/Pulse/Pulse.xcodeproj/project.pbxproj"
-DATA_SOURCE="$ROOT_DIR/src/pulseData.js"
-HOST_SOURCE="$ROOT_DIR/Pulse Safari Extension/Pulse/Pulse/ViewController.swift"
+IDENTITY="${PULSE_CODE_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | sed -n 's/.*"\(Apple Development:[^"]*\)"/\1/p' | head -n 1)}"
+if [[ -z "$IDENTITY" ]]; then
+  echo "Pulse needs an Apple Development signing identity for the native Safari extension." >&2
+  echo "Open Xcode → Settings → Accounts, sign in with an Apple ID, create a development certificate, then run this command again." >&2
+  exit 1
+fi
 
-perl -0pi -e "s/PRODUCT_BUNDLE_IDENTIFIER = [A-Za-z0-9.-]+\\.Pulse\\.Extension;/PRODUCT_BUNDLE_IDENTIFIER = $EXTENSION_ID;/g; s/PRODUCT_BUNDLE_IDENTIFIER = [A-Za-z0-9.-]+\\.Pulse;/PRODUCT_BUNDLE_IDENTIFIER = $HOST_ID;/g" "$PROJECT"
-perl -0pi -e "s/const NATIVE_HOST = \"[A-Za-z0-9.-]+\\.Pulse\";/const NATIVE_HOST = \"$HOST_ID\";/" "$DATA_SOURCE"
-perl -0pi -e "s/private let extensionBundleIdentifier = \"[A-Za-z0-9.-]+\\.Pulse\\.Extension\"/private let extensionBundleIdentifier = \"$EXTENSION_ID\"/" "$HOST_SOURCE"
+TEAM="${PULSE_DEVELOPMENT_TEAM:-$(security find-certificate -c "$IDENTITY" -p 2>/dev/null | openssl x509 -noout -subject -nameopt RFC2253 | sed -n 's/.*OU=\([^,]*\).*/\1/p')}"
+if [[ -z "$TEAM" ]]; then
+  echo "Could not determine the Apple development team from the signing identity." >&2
+  echo "Run again with PULSE_DEVELOPMENT_TEAM=YOUR_TEAM_ID." >&2
+  exit 1
+fi
 
-echo "Configured Pulse"
-echo "  host:      $HOST_ID"
-echo "  extension: $EXTENSION_ID"
-echo "Next: select your development team for both targets in Xcode."
+{
+  printf 'PULSE_BUNDLE_PREFIX=%q\n' "$PREFIX"
+  printf 'PULSE_DEVELOPMENT_TEAM=%q\n' "$TEAM"
+} > "$ROOT_DIR/.pulse.env"
+
+echo "Pulse is configured for local signing."
+echo "  app:       $PREFIX.Pulse"
+echo "  extension: $PREFIX.Pulse.Extension"
+echo "Run ./script/build_and_run.sh --verify to build and install it."

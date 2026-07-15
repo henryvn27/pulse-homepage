@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowDown,
   ArrowCounterClockwise,
   ArrowClockwise,
   ArrowSquareOut,
+  ArrowUp,
   Briefcase,
   CalendarBlank,
   Check,
@@ -16,9 +18,11 @@ import {
   PlugsConnected,
   Plus,
   Sparkle,
+  SlidersHorizontal,
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+import { defaultWidgetOrder, defaultWidgetVisibility, moveItem, moveWidget, normalizeWidgetOrder, widgetLabels } from "./customization.js";
 import { hasNativeBridge, loadDashboardData, setReminderStatus } from "./pulseData.js";
 
 const starterShortcuts = [
@@ -193,8 +197,10 @@ function SkeletonRows({ count, className }) {
 export function App() {
   const [dashboard, setDashboard] = useState(emptyDashboard);
   const [shortcuts, setShortcuts] = useStoredState("pulse-shortcuts", starterShortcuts);
-  const [name, setName] = useStoredState("pulse-name", "Henry");
+  const [name, setName] = useStoredState("pulse-name", "there");
   const [linearToken, setLinearToken] = useStoredState("pulse-linear-token", "");
+  const [widgetVisibility, setWidgetVisibility] = useStoredState("pulse-widget-visibility", defaultWidgetVisibility);
+  const [storedWidgetOrder, setWidgetOrder] = useStoredState("pulse-widget-order", defaultWidgetOrder);
   const [now, setNow] = useState(new Date());
   const [modal, setModal] = useState(null);
   const [shortcutDraft, setShortcutDraft] = useState({ label: "", url: "" });
@@ -216,6 +222,8 @@ export function App() {
   }, [loadDashboard]);
 
   const { linear, calendar, reminders, weather } = dashboard.sources;
+  const widgetOrder = normalizeWidgetOrder(storedWidgetOrder);
+  const visibleWidgets = widgetOrder.filter((key) => widgetVisibility[key] !== false);
   const linearStarted = linear.issues?.filter((issue) => issue.state?.type === "started") || [];
   const linearInProgress = linear.summary?.started ?? linearStarted.length;
   const nextEvent = calendar.events?.find((event) => new Date(event.end) > now);
@@ -280,24 +288,34 @@ export function App() {
     setLinearToken(linearTokenDraft.trim());
   };
 
+  const toggleWidget = (key) => {
+    setWidgetVisibility((current) => ({ ...defaultWidgetVisibility, ...current, [key]: current[key] === false }));
+  };
+
+  const widgetLayoutClass = (key) => {
+    if (visibleWidgets.length === 1) return "secondary-widget is-tall is-wide";
+    if (visibleWidgets.length === 2) return "secondary-widget is-tall";
+    return `secondary-widget${visibleWidgets[0] === key ? " is-featured" : ""}`;
+  };
+
   return (
     <main className="app-shell">
       <div className="dashboard" id="top">
         <section className="hero">
           <div>
             <p className="date">{new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(now)} · {now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</p>
-            <h1>{getGreeting(now)}, {name}<span className="period">.</span></h1>
+            <h1>{getGreeting(now)}, {name.trim() || "there"}<span className="period">.</span></h1>
             <p className="hero-copy">Your work, schedule, and loose ends in one calm place.</p>
           </div>
           <div className="hero-shortcuts" aria-label="Shortcuts">
             {shortcutRows.map((shortcut) => <a href={shortcut.url} target="_blank" rel="noreferrer" className="shortcut hero-shortcut" key={shortcut.id}><span><ShortcutIcon name={shortcut.icon} /></span><strong>{shortcut.label}</strong></a>)}
-            <div className="shortcut-controls">{shortcuts.length > 4 && <span className="panel-count">+{shortcuts.length - 4}</span>}<button className="icon-button subtle" onClick={() => setModal("shortcuts")} aria-label="Manage shortcuts"><Plus size={17} /></button></div>
+            <div className="shortcut-controls">{shortcuts.length > 4 && <span className="panel-count">+{shortcuts.length - 4}</span>}<button className="icon-button subtle" onClick={() => setModal("settings")} aria-label="Customize Pulse" title="Customize Pulse"><SlidersHorizontal size={17} /></button></div>
           </div>
         </section>
 
-        {dashboard.mode === "standalone" && <div className="service-banner standalone-banner"><CheckCircle size={18} /><span><strong>No server needed.</strong> Time, weather, and shortcuts run from this file. Use the Safari extension for live Linear, Calendar, and Reminders.</span><button className="text-button" onClick={openConnections}>Connections</button></div>}
+        {dashboard.mode === "standalone" && <div className="service-banner standalone-banner"><CheckCircle size={18} /><span><strong>No server needed.</strong> Time, weather, shortcuts, customization, and Linear run from this file. Use the Safari extension for Apple Calendar and Reminders.</span><button className="text-button" onClick={openConnections}>Connections</button></div>}
 
-        <section className="summary-strip" aria-label="Daily summary" aria-busy={dashboard.refreshing && dashboard.updatedAt === 0}>
+        {widgetVisibility.summary !== false && <section className="summary-strip" aria-label="Daily summary" aria-busy={dashboard.refreshing && dashboard.updatedAt === 0}>
           <div>
             <span className="summary-label">Needs attention</span>
             {reminders.status === "loading" ? <><Skeleton className="skeleton-summary-value" /><Skeleton className="skeleton-summary-detail" /></> : <><strong>{reminders.status === "ok" ? (overdue.length ? `${overdue.length} overdue` : "All clear") : "Connect"}</strong><small>{reminders.status === "ok" ? `${reminders.total} open reminders` : "Reminders are not connected"}</small></>}
@@ -311,7 +329,7 @@ export function App() {
             {reminders.status === "loading" ? <><Skeleton className="skeleton-summary-value next" /><Skeleton className="skeleton-summary-detail" /></> : <><strong className="summary-text">{reminders.status === "ok" ? (nextReminder?.title || "Reminders clear") : "Connect"}</strong><small>{reminders.status === "ok" ? (nextReminder ? `${nextReminder.list} · ${formatDue(nextReminder.due, nextReminder.overdue)}` : "Nothing left to do") : "Reminders are not connected"}</small></>}
           </div>
           <div className="weather-summary">{weather.status === "loading" ? <><span className="visually-hidden" role="status">Loading weather…</span><Skeleton className="skeleton-weather-icon" /><span><Skeleton className="skeleton-summary-value weather" /><Skeleton className="skeleton-summary-detail wide" /></span></> : <><CloudSun size={26} weight="duotone" /><span><strong>{weather.status === "ok" ? `${Math.round(weather.current.temperature_2m)}°` : "No data"}</strong><small>{weather.status === "ok" ? `${weather.location} · ${weatherLabel(weather.current.weather_code)}` : "Weather unavailable"}</small></span></>}</div>
-        </section>
+        </section>}
 
         <div className="content-grid">
           <section className="panel brief-panel" aria-busy={briefLoading}>
@@ -319,7 +337,7 @@ export function App() {
             <div className="brief-list">
               {briefLoading && <SkeletonRows count={3} className="brief-skeletons" />}
               {!briefLoading && <>
-                {!briefHasLiveData && <div className="brief-setup"><CloudSun size={20} /><span><strong>{weather.status === "ok" ? `${weatherLabel(weather.current.weather_code)} and ${Math.round(weather.current.temperature_2m)}° in ${weather.location}` : "Your local view is ready"}</strong><small>Open the Safari extension to add Calendar, Reminders, and Linear progress.</small></span><button className="text-button" onClick={openConnections}>Connections</button></div>}
+                {!briefHasLiveData && <div className="brief-setup"><CloudSun size={20} /><span><strong>{weather.status === "ok" ? `${weatherLabel(weather.current.weather_code)} and ${Math.round(weather.current.temperature_2m)}° in ${weather.location}` : "Your local view is ready"}</strong><small>Connect Linear here; use the Safari extension for Apple Calendar and Reminders.</small></span><button className="text-button" onClick={openConnections}>Connections</button></div>}
                 {nextReminder && <div>{nextReminder.overdue ? <WarningCircle size={20} /> : <ListChecks size={20} />}<span><strong>{nextReminder.overdue ? `Start with ${nextReminder.title}` : `Next: ${nextReminder.title}`}</strong><small>{nextReminder.list} · {formatDue(nextReminder.due, nextReminder.overdue)}</small></span></div>}
                 {nextEvent && <div><Clock size={20} /><span><strong>{nextEvent.title}</strong><small>{nextEvent.allDay ? "All day" : `Next at ${formatTime(nextEvent.start)}`} · {nextEvent.calendar}</small></span></div>}
                 {linear.status === "ok" && linear.focus && <div><Briefcase size={20} /><span><strong>Keep {linear.focus.identifier} moving</strong><small>{linear.focus.title}</small></span></div>}
@@ -328,7 +346,7 @@ export function App() {
             </div>
           </section>
 
-          <section className="panel reminders-panel" aria-busy={reminders.status === "loading"}>
+          {widgetVisibility.reminders !== false && <section className={`panel reminders-panel ${widgetLayoutClass("reminders")}`} style={{ order: widgetOrder.indexOf("reminders") + 1 }} aria-busy={reminders.status === "loading"}>
             <div className="panel-heading"><div><h2><ListChecks size={18} /> Reminders</h2><p>Things to move</p></div>{reminders.status === "ok" && <span className="panel-count">{reminders.total} open</span>}</div>
             <SourceState source={reminders} noun="Reminders" />
             {reminders.status === "loading" && <SkeletonRows count={6} className="task-skeletons" />}
@@ -336,16 +354,16 @@ export function App() {
               {reminderRows.map((reminder) => <article className="task-row" key={reminder.id}><button className="task-check" onClick={() => openReminderConfirmation(reminder)} aria-label={`Complete ${reminder.title}`} title="Mark complete"><Check size={14} weight="bold" /></button><div className="task-copy"><strong>{reminder.title}</strong><span className={reminder.overdue ? "overdue" : ""}><i></i>{reminder.list} · {formatDue(reminder.due, reminder.overdue)}</span></div></article>)}
               {reminderRows.length === 0 && <div className="empty-state compact-empty"><CheckCircle size={28} weight="duotone" /><strong>No incomplete reminders.</strong></div>}
             </div>}
-          </section>
+          </section>}
 
-          <section className="panel schedule-panel" aria-busy={calendar.status === "loading"}>
+          {widgetVisibility.calendar !== false && <section className={`panel schedule-panel ${widgetLayoutClass("calendar")}`} style={{ order: widgetOrder.indexOf("calendar") + 1 }} aria-busy={calendar.status === "loading"}>
             <div className="panel-heading compact"><div><h2><CalendarBlank size={18} /> Calendar</h2><p>Up next</p></div><span className="day-tile"><b>{now.getDate()}</b><small>{now.toLocaleString("en-US", { month: "short" }).toUpperCase()}</small></span></div>
             <SourceState source={calendar} noun="Calendar" />
             {calendar.status === "loading" && <SkeletonRows count={4} className="event-skeletons" />}
             {calendar.status === "ok" && <div className="events">{eventRows.map((event, index) => <article className="event" key={event.id}><span className={`event-line tone-${index % 3}`}></span><time>{event.allDay ? "All day" : formatTime(event.start)}</time><div><strong>{event.title}</strong><small>{event.calendar}</small></div></article>)}{eventRows.length === 0 && <div className="empty-state mini-empty"><CheckCircle size={25} weight="duotone" /><strong>No events in the next three days.</strong></div>}</div>}
-          </section>
+          </section>}
 
-          <section className="panel linear-panel" aria-busy={linear.status === "loading"}>
+          {widgetVisibility.linear !== false && <section className={`panel linear-panel ${widgetLayoutClass("linear")}`} style={{ order: widgetOrder.indexOf("linear") + 1 }} aria-busy={linear.status === "loading"}>
             <div className="panel-heading"><div><h2><Briefcase size={18} /> Linear progress</h2><p>Current work</p></div><a className="text-button" href="https://linear.app" target="_blank" rel="noreferrer">Open Linear <ArrowSquareOut size={15} /></a></div>
             <SourceState source={linear} noun="Linear" />
             {linear.status === "loading" && <div className="linear-overview skeleton-region" aria-hidden="true"><div className="linear-metrics skeleton-metrics">{[0, 1, 2].map((item) => <div key={item}><Skeleton className="skeleton-metric-value" /><Skeleton className="skeleton-metric-label" /></div>)}</div><div className="linear-focus skeleton-focus"><Skeleton className="skeleton-line short" /><Skeleton className="skeleton-line" /><Skeleton className="skeleton-line medium" /></div></div>}
@@ -357,26 +375,40 @@ export function App() {
               </div>
               {linear.focus ? <a className="linear-focus" href={linear.focus.url} target="_blank" rel="noreferrer" title={`Open ${linear.focus.identifier} in Linear`}><span className="focus-kicker"><span><i style={{ background: linear.focus.state?.color || "#777" }}></i>Current focus</span><b>{linear.focus.identifier}</b></span><strong>{linear.focus.title}</strong><small>{linear.focus.state?.name}{linear.focus.project?.name ? ` · ${linear.focus.project.name}` : linear.focus.team?.name ? ` · ${linear.focus.team.name}` : ""}</small><span className="focus-details"><span>{linearPriority(linear.focus.priority)} priority</span><span>{focusTiming(linear.focus)}</span></span><ArrowSquareOut size={14} /></a> : <div className="empty-state compact-empty"><CheckCircle size={28} weight="duotone" /><strong>No assigned work is active.</strong></div>}
             </div>}
-          </section>
+          </section>}
         </div>
       </div>
 
-      {modal === "shortcuts" && <Modal title="Manage shortcuts" onClose={() => setModal(null)}><div className="shortcut-manager">{shortcuts.map((shortcut) => <div key={shortcut.id}><span><ShortcutIcon name={shortcut.icon} /><strong>{shortcut.label}</strong></span><button onClick={() => setShortcuts((current) => current.filter((item) => item.id !== shortcut.id))} aria-label={`Remove ${shortcut.label}`}><X size={15} /></button></div>)}</div><form className="modal-form shortcut-form" onSubmit={addShortcut}><label>Name<input autoFocus autoComplete="off" value={shortcutDraft.label} onChange={(event) => setShortcutDraft({ ...shortcutDraft, label: event.target.value })} placeholder="Figma" /></label><label>Website<input inputMode="url" autoComplete="url" value={shortcutDraft.url} onChange={(event) => setShortcutDraft({ ...shortcutDraft, url: event.target.value })} placeholder="figma.com" /></label><button className="primary-button" type="submit">Add shortcut</button></form><div className="shortcut-utilities"><button className="secondary-button" onClick={openConnections}>Connections</button><button className="secondary-button" onClick={() => setModal("settings")}>Settings</button></div></Modal>}
+      {modal === "shortcuts" && <Modal title="Manage shortcuts" onClose={() => setModal(null)}><div className="shortcut-manager">{shortcuts.map((shortcut, index) => <div key={shortcut.id}><span><ShortcutIcon name={shortcut.icon} /><strong>{shortcut.label}</strong></span><span className="shortcut-row-actions"><button onClick={() => setShortcuts((current) => moveItem(current, shortcut.id, -1))} disabled={index === 0} aria-label={`Move ${shortcut.label} up`}><ArrowUp size={14} /></button><button onClick={() => setShortcuts((current) => moveItem(current, shortcut.id, 1))} disabled={index === shortcuts.length - 1} aria-label={`Move ${shortcut.label} down`}><ArrowDown size={14} /></button><button onClick={() => setShortcuts((current) => current.filter((item) => item.id !== shortcut.id))} aria-label={`Remove ${shortcut.label}`}><X size={15} /></button></span></div>)}</div><form className="modal-form shortcut-form" onSubmit={addShortcut}><label>Name<input autoFocus autoComplete="off" value={shortcutDraft.label} onChange={(event) => setShortcutDraft({ ...shortcutDraft, label: event.target.value })} placeholder="Figma" /></label><label>Website<input inputMode="url" autoComplete="url" value={shortcutDraft.url} onChange={(event) => setShortcutDraft({ ...shortcutDraft, url: event.target.value })} placeholder="figma.com" /></label><button className="primary-button" type="submit">Add shortcut</button></form><div className="shortcut-utilities"><button className="secondary-button" onClick={openConnections}>Connections</button><button className="secondary-button" onClick={() => setModal("settings")}>Dashboard</button></div></Modal>}
 
-      {modal === "settings" && <Modal title="Make it yours" onClose={() => setModal(null)}><div className="modal-form"><label>Your name<input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} /></label><div className="setting-row"><span><strong>Appearance</strong><small>Matches Safari automatically.</small></span><b className="panel-count">Auto</b></div><button className="primary-button" onClick={() => setModal(null)}>Save changes</button></div></Modal>}
+      {modal === "settings" && <Modal title="Customize Pulse" eyebrow="Profile · dashboard · shortcuts" onClose={() => setModal(null)}>
+        <div className="settings-section">
+          <span className="settings-kicker">Profile</span>
+          <label className="field-label">Greeting name<input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" /></label>
+          <div className="setting-row"><span><strong>Appearance</strong><small>Matches Safari automatically.</small></span><b className="panel-count">Auto</b></div>
+        </div>
+        <div className="settings-section">
+          <div className="settings-section-heading"><div><span className="settings-kicker">Dashboard</span><small>Daily Brief stays first. Choose what follows.</small></div><button className="text-button" type="button" onClick={() => { setWidgetVisibility(defaultWidgetVisibility); setWidgetOrder(defaultWidgetOrder); }}>Reset layout</button></div>
+          <label className="widget-row pinned"><span><strong>Daily Brief</strong><small>Your primary overview</small></span><b className="panel-count">Always on</b></label>
+          <label className="widget-row"><span><strong>Summary strip</strong><small>Attention, progress, next up, and weather</small></span><input type="checkbox" checked={widgetVisibility.summary !== false} onChange={() => toggleWidget("summary")} /></label>
+          {widgetOrder.map((key, index) => <div className="widget-row" key={key}><label><span><strong>{widgetLabels[key]}</strong><small>{widgetVisibility[key] === false ? "Hidden" : "Shown"}</small></span><input type="checkbox" checked={widgetVisibility[key] !== false} onChange={() => toggleWidget(key)} /></label><span className="widget-order-controls"><button type="button" onClick={() => setWidgetOrder((current) => moveWidget(current, key, -1))} disabled={index === 0} aria-label={`Move ${widgetLabels[key]} up`}><ArrowUp size={14} /></button><button type="button" onClick={() => setWidgetOrder((current) => moveWidget(current, key, 1))} disabled={index === widgetOrder.length - 1} aria-label={`Move ${widgetLabels[key]} down`}><ArrowDown size={14} /></button></span></div>)}
+        </div>
+        <div className="settings-actions"><button className="secondary-button" onClick={openConnections}>Connections</button><button className="secondary-button" onClick={() => setModal("shortcuts")}>Shortcuts</button><button className="primary-button" onClick={() => setModal(null)}>Done</button></div>
+      </Modal>}
 
       {modal === "connections" && <Modal title="Live connections" onClose={() => setModal(null)}>
         <div className="connection-grid">{Object.entries(dashboard.sources).map(([key, source]) => <div className="connection-row" key={key}><span className={`connection-dot ${sourceTone(source.status)}`}></span><div><strong>{key[0].toUpperCase() + key.slice(1)}</strong><small>{source.status === "ok" ? "Connected and live" : source.message || "Refreshing…"}</small></div></div>)}</div>
         <div className="connection-help">
           <strong>{dashboard.mode === "extension" ? "On-demand connection" : "Standalone page"}</strong>
-          <p>{dashboard.mode === "extension" ? "Calendar and Reminders load only while Pulse is open or refreshed. There is no localhost server or background daemon." : "This file is fully usable on its own. Open the packaged Pulse Safari extension when you want native Calendar, Reminders, and Linear data."}</p>
-          {dashboard.mode === "extension" && <form className="linear-key-form" onSubmit={saveLinearToken}>
+          <p>{dashboard.mode === "extension" ? "Calendar and Reminders load only while Pulse is open or refreshed. There is no localhost server or background daemon." : "This file connects to Linear directly. Install the packaged Safari extension when you also want Apple Calendar and Reminders."}</p>
+          <form className="linear-key-form" onSubmit={saveLinearToken}>
             <label>Linear personal API key<input type="password" autoComplete="off" value={linearTokenDraft} onChange={(event) => setLinearTokenDraft(event.target.value)} placeholder="lin_api_…" /></label>
             <a className="text-button linear-key-link" href="https://linear.app/settings/account/security" target="_blank" rel="noreferrer">Create a read-only key in Linear <ArrowSquareOut size={13} /></a>
             <div><button className="primary-button" type="submit">Save key</button>{linearToken && <button className="text-button" type="button" onClick={() => { setLinearToken(""); setLinearTokenDraft(""); }}>Remove</button>}</div>
-          </form>}
+          </form>
+          <button className="secondary-button refresh-connections" type="button" onClick={() => loadDashboard(true)} disabled={dashboard.refreshing}>{dashboard.refreshing ? "Refreshing…" : "Refresh connections"}</button>
           <strong>Privacy</strong>
-          <p>Calendar and Reminders stay behind macOS permission controls. In extension mode, the Linear key stays in Safari's isolated extension storage and is never written into the HTML file.</p>
+          <p>Calendar and Reminders stay behind macOS permission controls. The Linear key stays in Safari's local page or extension storage and is never written into the HTML file.</p>
         </div>
       </Modal>}
 

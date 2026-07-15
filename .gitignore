@@ -19,3 +19,5 @@ xcuserdata/
 *.p12
 *.pem
 *.mobileprovision
+.pulse.env
+.playwright-cli/

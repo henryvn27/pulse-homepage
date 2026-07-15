@@ -26,14 +26,27 @@ Pulse turns every new Safari tab into a concise daily brief. It combines your ne
 - **Daily Brief first.** The most useful summary is placed where you look first.
 - **Apple-native actions.** See Calendar events, review Reminders, and mark reminders complete without leaving the page.
 - **Linear without the backlog dump.** Pulse summarizes active work, recent throughput, and the issue that needs attention now.
-- **Shortcuts that are actually yours.** Add, edit, remove, and reorder the links you use every day.
+- **Shortcuts that are actually yours.** Add, remove, and reorder the links you use every day.
+- **A dashboard that adapts to you.** Change the greeting name, show or hide the summary and widgets, and reorder Reminders, Calendar, and Linear.
 - **One-screen density.** The desktop dashboard is designed to fit a Safari viewport without vertical scrolling.
 - **System-aware polish.** Light and dark modes follow Safari automatically, with source-shaped skeleton states while native data loads.
-- **Local-first architecture.** The homepage is packaged inside a Safari Web Extension. Linear is called directly from the extension; Apple data stays behind the native EventKit bridge.
+- **Local-first architecture.** Linear is called directly from the page or extension; Apple data stays behind the native EventKit bridge.
 
-## Try it in 30 seconds
+<p align="center">
+  <img src="docs/pulse-customize.png" alt="Pulse customization panel for profile, dashboard widgets, and shortcuts" width="920" />
+</p>
 
-The standalone build gives you the complete visual shell, live weather, time, and customizable shortcuts. Calendar, Reminders, and Linear require the Safari extension described below.
+## Download and use it
+
+### Standalone homepage — no developer tools
+
+[**Download the latest `pulse-homepage.html` →**](https://github.com/henryvn27/pulse-homepage/releases/latest/download/pulse-homepage.html)
+
+The standalone file includes time, weather, Linear progress, shortcuts, the editable greeting, and widget customization. Open it directly in Safari, choose **Connections** to add a read-only Linear key, then use its `file://` address as your Safari homepage. Apple Calendar and Reminders require the native extension below because normal webpages cannot access EventKit.
+
+No server, terminal, or installation process is required. The file contains its own JavaScript, CSS, fonts, and Pulse icon.
+
+### Build the standalone file yourself
 
 ```bash
 git clone https://github.com/henryvn27/pulse-homepage.git
@@ -45,33 +58,32 @@ open ../pulse-homepage.html
 
 The generated `pulse-homepage.html` is self-contained and opens directly through a `file://` URL. No server is needed.
 
-## Install the full Safari extension
+### Full Safari extension — Calendar and Reminders
 
-You need macOS, Safari, Xcode, and an Apple development team for local code signing.
-
-1. Install dependencies and build the web assets:
-
-   ```bash
-   npm install
-   npm run build:single
-   ```
-
-2. Give the app a bundle prefix that belongs to your Apple developer account:
-
-   ```bash
-   ./script/configure.sh com.yourname
-   ```
-
-3. Open `Pulse Safari Extension/Pulse/Pulse.xcodeproj` in Xcode. Under **Signing & Capabilities**, select your team for both the **Pulse** and **Pulse Extension** targets.
-4. Build and run the **Pulse** scheme.
-5. In Safari → Settings → Extensions, enable **Pulse Extension**.
-6. Open a new tab. Pulse is registered as Safari's new-tab page.
-7. Open **Connections** in Pulse to authorize Calendar and Reminders and add a read-only Linear personal API key.
-
-After signing is configured, the helper script can rebuild, install, launch, and verify the app:
+Apple requires Safari extensions to be signed. Pulse therefore builds the native app locally instead of publishing an unnotarized app that Gatekeeper may reject. You need Xcode, an Apple ID added under Xcode → Settings → Accounts, and Node.js 20 or newer.
 
 ```bash
-PULSE_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./script/build_and_run.sh --verify
+git clone https://github.com/henryvn27/pulse-homepage.git
+cd pulse-homepage
+./Install\ Pulse.command
+```
+
+The installer:
+
+- installs the pinned web dependencies;
+- detects your Apple development team;
+- creates unique local bundle identifiers without modifying tracked source;
+- builds and registers `Pulse.app`;
+- launches the host app and verifies that it started.
+
+Then enable **Pulse Extension** in Safari → Settings → Extensions and open a new tab. macOS will ask for Calendar and Reminders access the first time Pulse loads them.
+
+For a custom reverse-DNS bundle prefix, run the lower-level commands instead:
+
+```bash
+npm install
+./script/configure.sh com.yourname
+./script/build_and_run.sh --verify
 ```
 
 ## How it stays server-free
@@ -91,11 +103,12 @@ There is no application server. The standalone build inlines its JavaScript, CSS
 
 | Setting | Where it lives |
 | --- | --- |
-| Display name and shortcuts | Safari extension local storage |
-| Linear personal API key | Safari extension local storage |
+| Display name and shortcuts | Safari page or extension local storage |
+| Widget visibility and order | Safari page or extension local storage |
+| Linear personal API key | Safari page or extension local storage |
 | Calendar and Reminders access | macOS privacy permissions |
 | Weather location | `src/pulseData.js` |
-| Host and extension bundle IDs | `script/configure.sh` updates the project and source constants |
+| Local signing configuration | `.pulse.env` created by `script/configure.sh` and ignored by Git |
 
 Never commit a Linear key. Pulse only needs a personal key with enough access to read your assigned issues; use the narrowest permissions available and rotate the key if it is ever exposed.
 
@@ -104,6 +117,7 @@ Never commit a Linear key. Pulse only needs a personal key with enough access to
 ```bash
 npm install
 npm run dev          # local UI development
+npm run check:customization
 npm run build        # production web bundle
 npm run build:single # self-contained HTML + Safari extension assets
 ```
