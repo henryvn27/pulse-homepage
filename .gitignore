@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+DerivedData/
+extension/index.html
+extension/app.css
+extension/app.js
+Pulse Safari Extension/Pulse/Pulse Extension/Resources/index.html
+Pulse Safari Extension/Pulse/Pulse Extension/Resources/app.css
+Pulse Safari Extension/Pulse/Pulse Extension/Resources/app.js
+Pulse Safari Extension/Pulse/Pulse Extension/Resources/manifest.json
+Pulse Safari Extension/Pulse/Pulse Extension/Resources/icons/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+.env
+.env.*
+!.env.example
+*.p12
+*.pem
+*.mobileprovision

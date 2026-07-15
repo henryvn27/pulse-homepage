@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Pulse shows your upcoming events on your Safari homepage.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Pulse shows your upcoming events on your Safari homepage.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Pulse shows your reminders and lets you mark them complete from your Safari homepage.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Pulse shows your reminders and lets you mark them complete from your Safari homepage.</string>
+	<key>SFSafariWebExtensionConverterVersion</key>
+	<string>27.0</string>
+</dict>
+</plist>

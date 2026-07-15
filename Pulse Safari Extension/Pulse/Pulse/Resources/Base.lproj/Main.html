@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../Style.css">
+    <script src="../Script.js" defer></script>
+    <title>Pulse</title>
+</head>
+<body class="state-unknown">
+    <main class="shell">
+        <header class="brand-row">
+            <img class="app-icon" src="../Icon.png" width="48" height="48" alt="">
+            <div class="brand-copy">
+                <span class="eyebrow">Safari homepage</span>
+                <h1>Pulse</h1>
+            </div>
+            <div class="status-pill" role="status" aria-live="polite">
+                <span class="status-dot"></span>
+                <span class="status-label">Checking extension…</span>
+            </div>
+        </header>
+
+        <section class="intro" aria-labelledby="intro-title">
+            <h2 id="intro-title">Your day, ready when Safari opens.</h2>
+            <p>See current work, your calendar, reminders, weather, and shortcuts in one calm place.</p>
+        </section>
+
+        <section class="extension-card" aria-labelledby="extension-title">
+            <span class="step">1</span>
+            <div>
+                <strong id="extension-title">Safari extension</strong>
+                <span class="state-copy">Checking whether Pulse is enabled…</span>
+            </div>
+        </section>
+
+        <section class="address-card" aria-labelledby="address-title">
+            <div class="address-copy">
+                <span id="address-title">Homepage address</span>
+                <code class="homepage-url">Loading address…</code>
+            </div>
+            <button class="copy-button" type="button" aria-label="Copy homepage address">Copy</button>
+        </section>
+
+        <p class="connection-note">Pulse stays local. No server or background process is required.</p>
+
+        <footer class="actions">
+            <button class="primary-button" type="button">Open Pulse in Safari</button>
+            <button class="secondary-button open-preferences" type="button">Safari Settings</button>
+        </footer>
+    </main>
+
+    <div class="toast" role="status" aria-live="polite" aria-hidden="true"></div>
+</body>
+</html>
