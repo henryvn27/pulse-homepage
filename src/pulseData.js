@@ -32,56 +32,6 @@ async function loadWeather() {
   return { status: "ok", location: "Decatur", current: data.current, daily: data.daily };
 }
 
-async function loadLinear(token) {
-  if (!token) return { status: "setup", issues: [], message: "Add a Linear personal API key in Connections." };
-  const completedAfter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const query = `query PulseDashboard {
-    viewer {
-      name
-      active: assignedIssues(first: 250, orderBy: updatedAt, filter: { state: { type: { nin: ["completed", "canceled"] } } }) {
-        nodes {
-          id identifier title priority url updatedAt dueDate
-          state { name type color }
-          team { name key }
-          project { name color }
-        }
-      }
-      completed: assignedIssues(first: 250, filter: { completedAt: { gte: "${completedAfter}" } }) {
-        nodes { id }
-      }
-    }
-  }`;
-  const response = await fetch("https://api.linear.app/graphql", {
-    method: "POST",
-    headers: { Authorization: token, "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-  });
-  const payload = await response.json();
-  if (!response.ok || payload.errors?.length) {
-    throw new Error(payload.errors?.[0]?.message || `Linear request failed (${response.status}).`);
-  }
-  const viewer = payload.data.viewer;
-  const issues = viewer.active.nodes
-    .sort((left, right) => {
-      const started = Number(right.state?.type === "started") - Number(left.state?.type === "started");
-      return started || (left.priority || 99) - (right.priority || 99) || new Date(right.updatedAt) - new Date(left.updatedAt);
-    });
-  const started = issues.filter((issue) => issue.state?.type === "started").length;
-  return {
-    status: "ok",
-    viewer: viewer.name,
-    issues: issues.slice(0, 14),
-    focus: issues[0] || null,
-    summary: {
-      active: issues.length,
-      started,
-      queued: issues.length - started,
-      completedLast7Days: viewer.completed.nodes.length,
-      projects: new Set(issues.map((issue) => issue.project?.name).filter(Boolean)).size,
-    },
-  };
-}
-
 async function loadNativeSources(force) {
   if (!hasNativeBridge()) {
     return {
@@ -103,17 +53,16 @@ async function loadNativeSources(force) {
   }
 }
 
-export async function loadDashboardData(force = false, linearToken = "") {
-  const [nativeSources, linear, weather] = await Promise.all([
+export async function loadDashboardData(force = false) {
+  const [nativeSources, weather] = await Promise.all([
     loadNativeSources(force),
-    loadLinear(linearToken).catch((error) => ({ status: "error", issues: [], message: error.message })),
     loadWeather().catch((error) => ({ status: "error", message: error.message })),
   ]);
   return {
     refreshing: false,
     updatedAt: Date.now() / 1000,
     mode: hasNativeBridge() ? "extension" : "standalone",
-    sources: { ...nativeSources, linear, weather },
+    sources: { ...nativeSources, weather },
   };
 }
 
